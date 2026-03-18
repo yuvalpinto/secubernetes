@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+backend/.venv/
+
+# Environment files
+.env
+.env.*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# eBPF build artifacts
+*.o
+ebpf/build/
+ebpf/execve
+ebpf/openat
+
+# Optional temporary files
+*.tmp
+*.log
+
+# eBPF build outputs
+ebpf/execve
+ebpf/openat
+*.o
