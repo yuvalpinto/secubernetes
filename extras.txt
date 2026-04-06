@@ -1,0 +1,35 @@
+anomaly detection ---------- statistic module
+
+baseline behaivior
+
+while true; do
+  ls / >/dev/null 2>&1
+  ls /tmp >/dev/null 2>&1
+  pwd >/dev/null 2>&1
+  cat /etc/hostname >/dev/null 2>&1
+  cat /etc/resolv.conf >/dev/null 2>&1
+  sleep 2
+done
+
+
+anomaly behaivior
+
+cat /etc/passwd >/dev/null 2>&1
+cat /etc/shadow >/dev/null 2>&1
+wget -T 2 -O- http://1.1.1.1 >/dev/null 2>&1
+wget -T 2 -O- http://8.8.8.8 >/dev/null 2>&1
+for i in 1 2 3 4 5; do sh -c 'echo hi' >/dev/null 2>&1; done
+
+
+--------test רצף ארועים חריג----------------
+
+
+ kubectl exec -it test-pod -- /bin/sh -c '                                                                                      IFS= read -r first_line < /etc/shadow
+echo hello | nc listener-svc 8080
+'
+
+
+
+
+
+

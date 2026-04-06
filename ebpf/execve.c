@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <bpf/libbpf.h>
 #include "execve.skel.h"
@@ -15,6 +16,7 @@ static volatile sig_atomic_t stop;
 struct exec_event {
     __u32 pid;
     __u32 uid;
+    __u64 cgroup_id;
     char comm[16];
     char filename[256];
 };
@@ -72,7 +74,6 @@ static int is_ignored_filename(const char *filename)
     return 0;
 }
 
-/* JSON escaping בסיסי כדי לא לשבור את הפלט */
 static void print_json_escaped(const char *s)
 {
     for (; *s; s++) {
@@ -103,7 +104,6 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 {
     const struct exec_event *e = data;
 
-    /* מוודא שיש null terminator */
     char comm[17];
     char filename[257];
 
@@ -121,7 +121,8 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
         return;
     }
 
-    printf("{\"pid\":%u,\"uid\":%u,\"comm\":\"", e->pid, e->uid);
+    printf("{\"pid\":%u,\"uid\":%u,\"cgroup_id\":%llu,\"comm\":\"",
+       e->pid, e->uid, (unsigned long long)e->cgroup_id);
     print_json_escaped(comm);
     printf("\",\"filename\":\"");
     print_json_escaped(filename);

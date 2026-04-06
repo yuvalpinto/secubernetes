@@ -2,7 +2,7 @@ import queue
 import threading
 import time
 
-from backend.utils.events_repo import insert_events_raw
+from backend.utils.events_repo_sync import insert_events_raw_sync
 
 
 class StorageWorker(threading.Thread):
@@ -16,37 +16,44 @@ class StorageWorker(threading.Thread):
     def stop(self):
         self._running = False
 
-    async def _flush_batch(self, batch):
-        if batch:
-            await insert_events_raw(batch)
-            print(f"[storage] inserted batch of {len(batch)} events")
+    def _flush_batch(self, batch: list[dict]):
+        if not batch:
+            return
+
+        inserted = insert_events_raw_sync(batch)
+        print(f"[storage] inserted batch of {inserted} events")
 
     def run(self):
-        import asyncio
-
-        asyncio.run(self._run_async())
-
-    async def _run_async(self):
         batch = []
         last_flush = time.time()
 
         while self._running:
             now = time.time()
+            timeout = max(0.1, self.flush_interval - (now - last_flush))
 
             try:
-                event = self.db_queue.get(timeout=0.5)
+                event = self.db_queue.get(timeout=timeout)
                 batch.append(event)
             except queue.Empty:
                 pass
 
-            if batch and (
-                len(batch) >= self.batch_size or
-                (now - last_flush) >= self.flush_interval
-            ):
-                await self._flush_batch(batch)
-                batch = []
-                last_flush = time.time()
+            now = time.time()
+            should_flush = (
+                len(batch) >= self.batch_size
+                or (batch and (now - last_flush) >= self.flush_interval)
+            )
 
-        # flush אחרון ביציאה
+            if should_flush:
+                try:
+                    self._flush_batch(batch)
+                except Exception as exc:
+                    print(f"[storage] flush failed: {exc}")
+                finally:
+                    batch = []
+                    last_flush = time.time()
+
         if batch:
-            await self._flush_batch(batch)
+            try:
+                self._flush_batch(batch)
+            except Exception as exc:
+                print(f"[storage] final flush failed: {exc}")

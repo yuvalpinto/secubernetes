@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <bpf/libbpf.h>
 #include "openat.skel.h"
@@ -15,6 +16,7 @@ static volatile sig_atomic_t stop;
 struct openat_event {
     __u32 pid;
     __u32 uid;
+    __u64 cgroup_id;
     int dfd;
     int flags;
     char comm[16];
@@ -88,8 +90,8 @@ static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
         return;
     }
 
-    printf("{\"pid\":%u,\"uid\":%u,\"dfd\":%d,\"flags\":%d,\"comm\":\"",
-           e->pid, e->uid, e->dfd, e->flags);
+   printf("{\"pid\":%u,\"uid\":%u,\"cgroup_id\":%llu,\"dfd\":%d,\"flags\":%d,\"comm\":\"",
+       e->pid, e->uid, (unsigned long long)e->cgroup_id, e->dfd, e->flags);
     print_json_escaped(comm);
     printf("\",\"filename\":\"");
     print_json_escaped(filename);

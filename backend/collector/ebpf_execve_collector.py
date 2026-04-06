@@ -7,7 +7,7 @@ from datetime import datetime
 from backend.collector.dispatcher import EventDispatcher
 from backend.collector.online_worker import OnlineWorker
 from backend.collector.storage_worker import StorageWorker
-from backend.utils.container_resolver import resolve_container_info_from_pid
+from backend.collector.enrichment import enrich_execve_event
 
 
 EXECVE_BINARY = ["./ebpf/execve"]
@@ -22,16 +22,6 @@ def get_ppid_from_pid(pid: int):
     except Exception:
         return None
     return None
-
-
-def get_resolver_status(container_info: dict):
-    if container_info.get("container_id"):
-        return "resolved"
-
-    if container_info.get("cgroup_text") is None:
-        return "pid_disappeared_or_cgroup_unavailable"
-
-    return "cgroup_found_but_no_container_match"
 
 
 async def run_collector():
@@ -86,7 +76,6 @@ async def run_collector():
 
             pid = data["pid"]
             ppid = get_ppid_from_pid(pid)
-            container_info = resolve_container_info_from_pid(pid)
 
             event = {
                 "event_type": "execve",
@@ -97,21 +86,22 @@ async def run_collector():
                 "uid": data["uid"],
                 "comm": data["comm"],
                 "filename": data["filename"],
-                "container_id": container_info.get("container_id"),
-                "pod_uid": container_info.get("pod_uid"),
-                "resolver_status": get_resolver_status(container_info),
                 "source": "libbpf_perf_buffer",
             }
 
+            event = enrich_execve_event(event)
+
             print(
                 f"[collector] pid={event['pid']} ppid={event['ppid']} uid={event['uid']} "
-                f"{event['comm']} -> {event['filename']}"
+                f"{event['comm']} -> {event['filename']} "
+                f"container={event.get('container_id')} lineage={event.get('lineage', {}).get('summary')}"
             )
 
             dispatcher.dispatch(event)
 
     except KeyboardInterrupt:
         print("Stopping collector...")
+    finally:
         storage_worker.stop()
         online_worker.stop()
         process.terminate()

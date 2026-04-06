@@ -7,6 +7,7 @@ from datetime import datetime
 from backend.collector.dispatcher import EventDispatcher
 from backend.collector.online_worker import OnlineWorker
 from backend.collector.storage_worker import StorageWorker
+from backend.collector.enrichment import enrich_openat_event
 
 
 OPENAT_BINARY = ["./ebpf/openat"]
@@ -32,6 +33,7 @@ NOISY_COMMS = {
     "ftdc",
 }
 
+
 def should_skip_event(data: dict) -> bool:
     filename = data.get("filename", "")
     comm = data.get("comm", "")
@@ -47,21 +49,33 @@ def should_skip_event(data: dict) -> bool:
 
     return False
 
+
+def get_ppid_from_pid(pid: int):
+    try:
+        with open(f"/proc/{pid}/status", "r") as f:
+            for line in f:
+                if line.startswith("PPid:"):
+                    return int(line.split()[1])
+    except Exception:
+        return None
+    return None
+
+
 def build_event(data: dict) -> dict:
+    pid = data["pid"]
+    ppid = get_ppid_from_pid(pid)
+
     return {
         "event_type": "openat",
         "ts": datetime.utcnow(),
-        "pid": data["pid"],
-        "ppid": None,
-        "ppid_status": "disabled_for_openat",
+        "pid": pid,
+        "ppid": ppid,
+        "ppid_status": "resolved" if ppid is not None else "pid_disappeared",
         "uid": data["uid"],
         "comm": data["comm"],
         "filename": data["filename"],
         "dfd": data["dfd"],
         "flags": data["flags"],
-        "container_id": None,
-        "pod_uid": None,
-        "resolver_status": "disabled_for_openat",
         "source": "libbpf_perf_buffer",
     }
 
@@ -138,10 +152,12 @@ async def run_collector():
                 continue
 
             event = build_event(data)
+            event = enrich_openat_event(event)
 
             print(
-                f"[collector-openat] pid={event['pid']} uid={event['uid']} "
-                f"{event['comm']} -> {event['filename']}"
+                f"[collector-openat] pid={event['pid']} ppid={event['ppid']} uid={event['uid']} "
+                f"{event['comm']} -> {event['filename']} "
+                f"container={event.get('container_id')} lineage={event.get('lineage', {}).get('summary')}"
             )
 
             dispatcher.dispatch(event)

@@ -7,6 +7,7 @@ char LICENSE[] SEC("license") = "GPL";
 struct exec_event {
     __u32 pid;
     __u32 uid;
+    __u64 cgroup_id;
     char comm[16];
     char filename[256];
 };
@@ -32,6 +33,7 @@ int handle_execve(struct syscall_trace_enter *ctx)
 
     event.pid = bpf_get_current_pid_tgid() >> 32;
     event.uid = (__u32)bpf_get_current_uid_gid();
+    event.cgroup_id = bpf_get_current_cgroup_id();
     bpf_get_current_comm(&event.comm, sizeof(event.comm));
 
     filename_ptr = (const char *)ctx->args[0];

@@ -7,6 +7,7 @@ char LICENSE[] SEC("license") = "GPL";
 struct openat_event {
     __u32 pid;
     __u32 uid;
+    __u64 cgroup_id;
     int dfd;
     int flags;
     char comm[16];
@@ -34,6 +35,7 @@ int handle_openat(struct syscall_trace_enter *ctx)
 
     event.pid = bpf_get_current_pid_tgid() >> 32;
     event.uid = (__u32)bpf_get_current_uid_gid();
+    event.cgroup_id = bpf_get_current_cgroup_id();
     bpf_get_current_comm(&event.comm, sizeof(event.comm));
 
     event.dfd = (int)ctx->args[0];

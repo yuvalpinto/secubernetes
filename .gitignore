@@ -36,4 +36,8 @@ ebpf/openat
 # eBPF build outputs
 ebpf/execve
 ebpf/openat
+ebpf/connect
 *.o
+
+frontend/my-react-app/node_modules/
+output.txt
