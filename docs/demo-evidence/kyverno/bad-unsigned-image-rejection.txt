@@ -1,0 +1,7 @@
+Error from server: error when creating "security/kyverno/test-pods/bad-unsigned-image-pod.yaml": admission webhook "mutate.kyverno.svc-fail" denied the request: 
+
+resource Pod/policy-demo/bad-unsigned-image-pod was blocked due to the following policies 
+
+secubernetes-verify-signed-images:
+  verify-cosign-signature: 'failed to verify image ghcr.io/yuvalpinto/secubernetes-unsigned-demo:latest:
+    .attestors[0].entries[0].keys: no signatures found'

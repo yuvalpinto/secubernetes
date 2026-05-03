@@ -1,0 +1,2 @@
+Error: unknown flag: --registry-referrers-mode
+error during command execution: unknown flag: --registry-referrers-mode

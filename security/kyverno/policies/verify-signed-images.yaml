@@ -1,0 +1,44 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: secubernetes-verify-signed-images
+  annotations:
+    policies.kyverno.io/title: Secubernetes Verify Signed Images
+    policies.kyverno.io/category: Software Supply Chain Security
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: Pod
+    policies.kyverno.io/description: >-
+      Verifies that images from ghcr.io/yuvalpinto are signed with the Secubernetes Cosign public key.
+spec:
+  webhookConfiguration:
+    failurePolicy: Fail
+    timeoutSeconds: 30
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: verify-cosign-signature
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - policy-demo
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/yuvalpinto/*"
+          imageRegistryCredentials:
+            secrets:
+              - ghcr-regcred
+          failureAction: Enforce
+          required: true
+          mutateDigest: true
+          verifyDigest: true
+          useCache: false
+          attestors:
+            - count: 1
+              entries:
+                - keys:
+                    publicKeys: k8s://kyverno/secubernetes-cosign-pub
+                    rekor:
+                      ignoreTlog: true

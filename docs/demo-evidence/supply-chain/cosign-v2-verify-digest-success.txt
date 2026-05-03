@@ -1,0 +1,9 @@
+setting TUF refresh period to 24h0m0s
+
+Verification for ghcr.io/yuvalpinto/secubernetes-demo@sha256:228b3ea2057644d42b54349ebeb4aa0d5bd820bec64a6e0f592e9eaaba80ac4a --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - Existence of the claims in the transparency log was verified offline
+  - The signatures were verified against the specified public key
+
+[{"critical":{"identity":{"docker-reference":"ghcr.io/yuvalpinto/secubernetes-demo"},"image":{"docker-manifest-digest":"sha256:228b3ea2057644d42b54349ebeb4aa0d5bd820bec64a6e0f592e9eaaba80ac4a"},"type":"cosign container image signature"},"optional":{"Bundle":{"SignedEntryTimestamp":"MEQCIBpLKa9Gfshfzr0DhnBoIaGuggRe2z31R624A+7YEkmrAiB77deXmCYE6S+ZWRUVuHO2kUWWhy1u7vC/c9VXOtCrtQ==","Payload":{"body":"eyJhcGlWZXJzaW9uIjoiMC4wLjEiLCJraW5kIjoiaGFzaGVkcmVrb3JkIiwic3BlYyI6eyJkYXRhIjp7Imhhc2giOnsiYWxnb3JpdGhtIjoic2hhMjU2IiwidmFsdWUiOiJjMDQ0OWYwZDM1NDgxMDM5N2VlNWYyMGUxNWM0ODcwYjFhOGNkMTg5NGE3NzBjNDhjNDJiODNjZDgzOGVkOTI1In19LCJzaWduYXR1cmUiOnsiY29udGVudCI6Ik1FVUNJUURQaUdqckVzNmJta1JlMHplSmh6eEVncm9aQmxQaUdJSVhVRC9GME1PUHN3SWdBKzNPbDJKY0ZXTSs1QWtJdXJSOEZkbDJieFNnSkIrUDFjelhxYzRRelY4PSIsInB1YmxpY0tleSI6eyJjb250ZW50IjoiTFMwdExTMUNSVWRKVGlCUVZVSk1TVU1nUzBWWkxTMHRMUzBLVFVacmQwVjNXVWhMYjFwSmVtb3dRMEZSV1VsTGIxcEplbW93UkVGUlkwUlJaMEZGU1M5M1FUZHRMM0ZvUml0a1NYQklTelZ4YjBsQlVVdDRRM0JUU1FwVlpTOVFSVE00Y1hWTFRuVlpjVkE0YVRaWGMyZHFNMnhhUW1FeWRrTXlVMkpqVlZObldYVmxjRFJ2YzFkTVIySXdiMlpNVEdkcGRHTm5QVDBLTFMwdExTMUZUa1FnVUZWQ1RFbERJRXRGV1MwdExTMHRDZz09In19fX0=","integratedTime":1777830367,"logIndex":1435935375,"logID":"c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d"}}}}]

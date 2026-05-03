@@ -1,0 +1,63 @@
+Name:             good-policy-demo-pod
+Namespace:        policy-demo
+Priority:         0
+Service Account:  default
+Node:             secubernetes-control-plane/172.18.0.2
+Start Time:       Sun, 03 May 2026 20:46:35 +0300
+Labels:           <none>
+Annotations:      kyverno.io/verify-images:
+                    {"ghcr.io/yuvalpinto/secubernetes-demo@sha256:228b3ea2057644d42b54349ebeb4aa0d5bd820bec64a6e0f592e9eaaba80ac4a":"pass"}
+Status:           Running
+IP:               10.244.0.13
+IPs:
+  IP:  10.244.0.13
+Containers:
+  app:
+    Container ID:  containerd://1500ca538960f6e557c3be85ea8f7a2ebd1154f8837107ed64aea65ce91ef959
+    Image:         ghcr.io/yuvalpinto/secubernetes-demo:latest@sha256:228b3ea2057644d42b54349ebeb4aa0d5bd820bec64a6e0f592e9eaaba80ac4a
+    Image ID:      docker.io/library/import-2026-05-03@sha256:f6b90e01c5455c61b7ecfa12ca130f7d6b986828607548cf8b4f1b26327e8586
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      sh
+      -c
+      sleep 3600
+    State:          Running
+      Started:      Sun, 03 May 2026 20:46:38 +0300
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     100m
+      memory:  128Mi
+    Requests:
+      cpu:        50m
+      memory:     64Mi
+    Environment:  <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-hv5t9 (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
+  PodScheduled                True 
+Volumes:
+  kube-api-access-hv5t9:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  76s   default-scheduler  Successfully assigned policy-demo/good-policy-demo-pod to secubernetes-control-plane
+  Normal  Pulling    75s   kubelet            Pulling image "ghcr.io/yuvalpinto/secubernetes-demo:latest@sha256:228b3ea2057644d42b54349ebeb4aa0d5bd820bec64a6e0f592e9eaaba80ac4a"
+  Normal  Pulled     74s   kubelet            Successfully pulled image "ghcr.io/yuvalpinto/secubernetes-demo:latest@sha256:228b3ea2057644d42b54349ebeb4aa0d5bd820bec64a6e0f592e9eaaba80ac4a" in 1.138s (1.138s including waiting). Image size: 2208293 bytes.
+  Normal  Created    74s   kubelet            Created container app
+  Normal  Started    73s   kubelet            Started container app
