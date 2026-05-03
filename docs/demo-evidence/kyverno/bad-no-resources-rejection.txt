@@ -1,0 +1,8 @@
+Error from server: error when creating "security/kyverno/test-pods/bad-no-resources-pod.yaml": admission webhook "validate.kyverno.svc-fail" denied the request: 
+
+resource Pod/policy-demo/bad-no-resources-pod was blocked due to the following policies 
+
+secubernetes-require-resource-limits:
+  require-container-resources: 'validation error: CPU and memory requests/limits are
+    required by Secubernetes admission policy. rule require-container-resources failed
+    at path /spec/containers/0/resources/limits/'

@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bad-hostpath-pod
+  namespace: policy-demo
+spec:
+  containers:
+    - name: bad
+      image: ghcr.io/yuvalpinto/secubernetes-demo:latest
+      command: ["sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - name: host-root
+          mountPath: /host
+      resources:
+        requests:
+          cpu: "50m"
+          memory: "64Mi"
+        limits:
+          cpu: "100m"
+          memory: "128Mi"
+      securityContext:
+        privileged: false
+  volumes:
+    - name: host-root
+      hostPath:
+        path: /
+        type: Directory

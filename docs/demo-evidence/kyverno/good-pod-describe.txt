@@ -1,0 +1,63 @@
+Name:             good-policy-demo-pod
+Namespace:        policy-demo
+Priority:         0
+Service Account:  default
+Node:             secubernetes-control-plane/172.18.0.2
+Start Time:       Sun, 03 May 2026 18:59:59 +0300
+Labels:           <none>
+Annotations:      <none>
+Status:           Pending
+IP:               10.244.0.11
+IPs:
+  IP:  10.244.0.11
+Containers:
+  app:
+    Container ID:  
+    Image:         ghcr.io/yuvalpinto/secubernetes-demo:latest
+    Image ID:      
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      sh
+      -c
+      sleep 3600
+    State:          Waiting
+      Reason:       ImagePullBackOff
+    Ready:          False
+    Restart Count:  0
+    Limits:
+      cpu:     100m
+      memory:  128Mi
+    Requests:
+      cpu:        50m
+      memory:     64Mi
+    Environment:  <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-6tlzr (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       False 
+  ContainersReady             False 
+  PodScheduled                True 
+Volumes:
+  kube-api-access-6tlzr:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age               From               Message
+  ----     ------     ----              ----               -------
+  Normal   Scheduled  22s               default-scheduler  Successfully assigned policy-demo/good-policy-demo-pod to secubernetes-control-plane
+  Normal   BackOff    19s               kubelet            Back-off pulling image "ghcr.io/yuvalpinto/secubernetes-demo:latest"
+  Warning  Failed     19s               kubelet            Error: ImagePullBackOff
+  Normal   Pulling    4s (x2 over 21s)  kubelet            Pulling image "ghcr.io/yuvalpinto/secubernetes-demo:latest"
+  Warning  Failed     3s (x2 over 20s)  kubelet            Failed to pull image "ghcr.io/yuvalpinto/secubernetes-demo:latest": failed to pull and unpack image "ghcr.io/yuvalpinto/secubernetes-demo:latest": failed to resolve reference "ghcr.io/yuvalpinto/secubernetes-demo:latest": failed to authorize: failed to fetch anonymous token: unexpected status from GET request to https://ghcr.io/token?scope=repository%3Ayuvalpinto%2Fsecubernetes-demo%3Apull&service=ghcr.io: 403 Forbidden
+  Warning  Failed     3s (x2 over 20s)  kubelet            Error: ErrImagePull

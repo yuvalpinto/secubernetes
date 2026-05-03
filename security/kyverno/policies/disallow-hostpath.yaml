@@ -1,0 +1,22 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: secubernetes-disallow-hostpath
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: disallow-hostpath
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - policy-demo
+      validate:
+        message: "hostPath volumes are not allowed by Secubernetes admission policy."
+        pattern:
+          spec:
+            =(volumes):
+              - X(hostPath): "null"

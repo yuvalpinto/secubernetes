@@ -1,0 +1,7 @@
+Error from server: error when creating "security/kyverno/test-pods/bad-hostpath-pod.yaml": admission webhook "validate.kyverno.svc-fail" denied the request: 
+
+resource Pod/policy-demo/bad-hostpath-pod was blocked due to the following policies 
+
+secubernetes-disallow-hostpath:
+  disallow-hostpath: 'validation error: hostPath volumes are not allowed by Secubernetes
+    admission policy. rule disallow-hostpath failed at path /spec/volumes/0/hostPath/'

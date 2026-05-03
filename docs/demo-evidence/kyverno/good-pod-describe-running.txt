@@ -1,0 +1,61 @@
+Name:             good-policy-demo-pod
+Namespace:        policy-demo
+Priority:         0
+Service Account:  default
+Node:             secubernetes-control-plane/172.18.0.2
+Start Time:       Sun, 03 May 2026 19:03:14 +0300
+Labels:           <none>
+Annotations:      <none>
+Status:           Running
+IP:               10.244.0.12
+IPs:
+  IP:  10.244.0.12
+Containers:
+  app:
+    Container ID:  containerd://9f4535ed5f9e4dd9f467c6b506ded1bdfed9c6f599e18500f71a4eeef6165ebc
+    Image:         ghcr.io/yuvalpinto/secubernetes-demo:latest
+    Image ID:      docker.io/library/import-2026-05-03@sha256:f6b90e01c5455c61b7ecfa12ca130f7d6b986828607548cf8b4f1b26327e8586
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      sh
+      -c
+      sleep 3600
+    State:          Running
+      Started:      Sun, 03 May 2026 19:03:15 +0300
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     100m
+      memory:  128Mi
+    Requests:
+      cpu:        50m
+      memory:     64Mi
+    Environment:  <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-d78dv (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
+  PodScheduled                True 
+Volumes:
+  kube-api-access-d78dv:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    Optional:                false
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age   From               Message
+  ----    ------     ----  ----               -------
+  Normal  Scheduled  58s   default-scheduler  Successfully assigned policy-demo/good-policy-demo-pod to secubernetes-control-plane
+  Normal  Pulled     58s   kubelet            Container image "ghcr.io/yuvalpinto/secubernetes-demo:latest" already present on machine
+  Normal  Created    58s   kubelet            Created container app
+  Normal  Started    58s   kubelet            Started container app

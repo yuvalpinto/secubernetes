@@ -1,0 +1,26 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: secubernetes-restrict-image-registries
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: restrict-image-registries
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - policy-demo
+      validate:
+        message: "Only images from ghcr.io/yuvalpinto/* are allowed in policy-demo."
+        pattern:
+          spec:
+            =(initContainers):
+              - image: "ghcr.io/yuvalpinto/*"
+            containers:
+              - image: "ghcr.io/yuvalpinto/*"
+            =(ephemeralContainers):
+              - image: "ghcr.io/yuvalpinto/*"

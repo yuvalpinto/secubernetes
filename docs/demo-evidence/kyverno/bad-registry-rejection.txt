@@ -1,0 +1,7 @@
+Error from server: error when creating "security/kyverno/test-pods/bad-registry-pod.yaml": admission webhook "validate.kyverno.svc-fail" denied the request: 
+
+resource Pod/policy-demo/bad-registry-pod was blocked due to the following policies 
+
+secubernetes-restrict-image-registries:
+  restrict-image-registries: 'validation error: Only images from ghcr.io/yuvalpinto/*
+    are allowed in policy-demo. rule restrict-image-registries failed at path /spec/containers/0/image/'

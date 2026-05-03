@@ -1,0 +1,8 @@
+Error from server: error when creating "security/kyverno/test-pods/bad-privileged-pod.yaml": admission webhook "validate.kyverno.svc-fail" denied the request: 
+
+resource Pod/policy-demo/bad-privileged-pod was blocked due to the following policies 
+
+secubernetes-disallow-privileged-containers:
+  disallow-privileged-containers: 'validation error: Privileged containers are not
+    allowed by Secubernetes admission policy. rule disallow-privileged-containers
+    failed at path /spec/containers/0/securityContext/privileged/'
