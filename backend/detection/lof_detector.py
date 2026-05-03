@@ -129,25 +129,44 @@ class LOFDetector:
         return point
 
     def _compute_lof(self, point: List[float], history_points: List[List[float]]) -> float:
-        """
-        Compute LOF score for 'point' relative to history_points.
-
-        This is the main algorithmic part you should implement.
-
-        Suggested steps:
-        1. find k-nearest neighbors of point
-        2. compute k-distance for relevant points
-        3. compute reachability distance
-        4. compute local reachability density (LRD)
-        5. compute LOF
-
-        For now, returns placeholder.
-        """
         if len(history_points) < self.config.k_neighbors:
             return 1.0
 
-        # TODO: replace with real LOF implementation
-        return 1.0
+        neighbors = self._get_k_nearest_neighbors(point, history_points)
+        neighbor_points = [neighbor_point for neighbor_point, _ in neighbors]
+
+        point_lrd = self._local_reachability_density(
+            point,
+            neighbor_points,
+            history_points,
+        )
+
+        if point_lrd == 0:
+            return 1.0
+
+        lrd_sum = 0.0
+
+        for neighbor_point in neighbor_points:
+            neighbor_neighbors = self._get_k_nearest_neighbors(neighbor_point, history_points)
+            neighbor_neighbor_points = [p for p, _ in neighbor_neighbors]
+
+            neighbor_lrd = self._local_reachability_density(
+                neighbor_point,
+                neighbor_neighbor_points,
+                history_points,
+            )
+
+            lrd_sum += neighbor_lrd
+
+        avg_lrd = lrd_sum / len(neighbor_points)
+        # print("[LOF DEBUG] point =", point)
+        # print("[LOF DEBUG] neighbor_points =", neighbor_points)
+        # print("[LOF DEBUG] point_lrd =", point_lrd)
+        # print("[LOF DEBUG] avg_neighbor_lrd =", avg_lrd)
+        # print("[LOF DEBUG] lof =", avg_lrd / point_lrd)
+        lof_value = avg_lrd / point_lrd
+        return min(lof_value, 100.0)
+        
 
     def _euclidean_distance(self, p1: List[float], p2: List[float]) -> float:
         """
@@ -226,16 +245,12 @@ class LOFDetector:
 
         return max(direct_distance, k_distance_b)
 
-  
     def _local_reachability_density(
-    self,
+        self,
         point: List[float],
         neighbors: List[List[float]],
         all_points: List[List[float]],
     ) -> float:
-        """
-        LRD(point) = 1 / average(reachability_distance(point, neighbor))
-        """
         if not neighbors:
             return 0.0
 
@@ -247,10 +262,8 @@ class LOFDetector:
 
         avg_reachability = reachability_sum / len(neighbors)
 
-        if avg_reachability == 0:
-            return 0.0
-
-        return 1.0 / avg_reachability
+        epsilon = 1e-10
+        return 1.0 / max(avg_reachability, epsilon)
 
     def _build_warmup_result(
         self,

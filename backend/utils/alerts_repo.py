@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from backend.utils.db import get_db
 
 ALERTS_COLLECTION = "alerts"
@@ -136,3 +138,22 @@ async def get_alert_stats():
         "by_type": by_type,
         "latest_alert_ts": latest_alert_ts,
     }
+async def get_alerts_for_pod_in_window(
+    namespace: str,
+    pod_name: str,
+    window_start: datetime,
+    window_end: datetime,
+):
+    db = get_db()
+
+    query = {
+        "source_event.namespace": namespace,
+        "source_event.pod_name": pod_name,
+        "ts": {
+            "$gte": window_start,
+            "$lt": window_end,
+        },
+    }
+
+    cursor = db[ALERTS_COLLECTION].find(query).sort("ts", -1)
+    return await cursor.to_list(length=1000)

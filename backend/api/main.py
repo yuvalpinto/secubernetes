@@ -10,6 +10,12 @@ from backend.utils.alerts_repo import (
     get_alerts_by_types,
     get_alerts_by_severity,
     get_alert_summary
+    
+)
+from backend.utils.container_risk_scores_repo import (
+    get_latest_container_risk_scores,
+    get_container_risk_scores_by_pod,
+    get_latest_container_risk_per_pod,
 )
 from backend.utils.events_repo import get_latest_events
 
@@ -22,26 +28,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+from bson import ObjectId
+
+
+def _serialize_value(value):
+    if isinstance(value, ObjectId):
+        return str(value)
+
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+
+    if isinstance(value, dict):
+        return {k: _serialize_value(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [_serialize_value(v) for v in value]
+
+    return value
+
+
 def serialize_doc(doc: dict) -> dict:
-    doc = dict(doc)
-
-    if "_id" in doc:
-        doc["_id"] = str(doc["_id"])
-
-    ts = doc.get("ts")
-    if ts is not None and hasattr(ts, "isoformat"):
-        doc["ts"] = ts.isoformat()
-
-    source_event = doc.get("source_event")
-    if isinstance(source_event, dict):
-        source_event = dict(source_event)
-        source_ts = source_event.get("ts")
-        if source_ts is not None and hasattr(source_ts, "isoformat"):
-            source_event["ts"] = source_ts.isoformat()
-        doc["source_event"] = source_event
-
-    return doc
-
+    return _serialize_value(dict(doc))
 
 @app.get("/health")
 async def health():
@@ -107,3 +114,37 @@ async def events_latest(limit: int = Query(default=100, ge=1, le=1000)):
 @app.get("/alerts/stats")
 async def alerts_stats():
     return await get_alert_stats()
+
+@app.get("/container-risk/latest")
+async def container_risk_latest(limit: int = Query(default=50, ge=1, le=500)):
+    items = await get_latest_container_risk_scores(limit=limit)
+    return {
+        "count": len(items),
+        "items": [serialize_doc(item) for item in items],
+    }
+
+
+@app.get("/container-risk/latest-per-pod")
+async def container_risk_latest_per_pod(limit: int = Query(default=100, ge=1, le=500)):
+    items = await get_latest_container_risk_per_pod(limit=limit)
+    return {
+        "count": len(items),
+        "items": [serialize_doc(item) for item in items],
+    }
+
+
+@app.get("/container-risk/by-pod/{pod_name}")
+async def container_risk_by_pod(
+    pod_name: str,
+    namespace: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=500),
+):
+    items = await get_container_risk_scores_by_pod(
+        pod_name=pod_name,
+        namespace=namespace,
+        limit=limit,
+    )
+    return {
+        "count": len(items),
+        "items": [serialize_doc(item) for item in items],
+    }

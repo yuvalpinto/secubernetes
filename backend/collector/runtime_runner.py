@@ -6,12 +6,12 @@ from datetime import datetime
 from backend.collector.dispatcher import EventDispatcher
 from backend.collector.online_worker import OnlineWorker
 from backend.collector.storage_worker import StorageWorker
-from backend.collector.enrichment import lineage_tracker
+from backend.utils.process_lineage import ProcessLineageTracker
 from backend.utils.container_resolver import (
     resolve_container_info_from_pid,
     resolve_container_info_from_cgroup_id,
 )
-from backend.utils.process_lineage import ProcessIdentityTracker
+
 from backend.collector.feature_worker import FeatureWorker
 
 EXECVE_BINARY = ["./ebpf/execve"]
@@ -51,7 +51,7 @@ def get_ppid_from_pid(pid: int):
     return None
 
 
-def enrich_common_fields(event: dict, identity_tracker) -> dict:
+def enrich_common_fields(event: dict, lineage_tracker) -> dict:
     pid = event.get("pid")
     ppid = event.get("ppid")
     event_type = event.get("event_type")
@@ -72,21 +72,7 @@ def enrich_common_fields(event: dict, identity_tracker) -> dict:
     event.update(container_info)
 
     if pid is not None:
-        if event_type == "execve":
-            identity = identity_tracker.register_exec(
-                pid=pid,
-                ppid=ppid,
-                comm=event.get("comm"),
-                filename=event.get("filename"),
-            )
-        else:
-            identity = identity_tracker.resolve_for_event(
-                pid=pid,
-                ppid=ppid,
-            )
-
-        event["process_key"] = identity.get("process_key")
-        event["parent_process_key"] = identity.get("parent_process_key")
+        event = lineage_tracker.enrich_event(event)
 
     event.setdefault("container_id", None)
     event.setdefault("pod_uid", None)
@@ -184,7 +170,11 @@ class RuntimeRunner:
         self.online_queue = queue.Queue(maxsize=10000)
         self.feature_queue = queue.Queue(maxsize=10000)
 
-        self.identity_tracker = ProcessIdentityTracker(ttl_seconds=300)
+        self.lineage_tracker = ProcessLineageTracker(
+            process_ttl_sec=900,
+            max_nodes=50000,
+            max_ancestors=8,
+        )
 
         self.dispatcher = EventDispatcher(
             db_queue=self.db_queue,
@@ -259,8 +249,7 @@ class RuntimeRunner:
 
             try:
                 event = event_builder(data)
-                event = enrich_common_fields(event, self.identity_tracker)
-
+                event = enrich_common_fields(event, self.lineage_tracker)
                 if name == "connect":
                     print(
                         f"[{name}] pid={event.get('pid')} ppid={event.get('ppid')} "

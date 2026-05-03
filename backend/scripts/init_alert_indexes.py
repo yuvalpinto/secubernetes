@@ -21,6 +21,7 @@ async def init_alert_indexes():
         ("severity", 1),
         ("ts", -1),
     ])
+    
 
     print("Alert indexes created successfully.")
 

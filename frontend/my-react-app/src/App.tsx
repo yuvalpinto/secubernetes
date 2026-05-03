@@ -12,6 +12,8 @@ import {
   Server,
   Bug,
   Boxes,
+  BarChart3,
+  Radar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,6 +36,13 @@ const severityStyles: Record<string, string> = {
   low: "bg-blue-100 text-blue-800 border-blue-200",
 };
 
+const riskLevelStyles: Record<string, string> = {
+  critical: "bg-red-100 text-red-800 border-red-200",
+  high: "bg-orange-100 text-orange-800 border-orange-200",
+  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
+  low: "bg-blue-100 text-blue-800 border-blue-200",
+};
+
 const endpointOptions = [
   { label: "Latest Alerts", value: "latest", path: "/alerts/latest?limit=50" },
   { label: "Chain Alerts", value: "chains", path: "/alerts/chains?limit=50" },
@@ -43,14 +52,32 @@ const endpointOptions = [
   { label: "Low Alerts", value: "low", path: "/alerts/by-severity/low?limit=50" },
 ];
 
-function StatCard({ title, value, icon: Icon, hint }) {
+const riskEndpointOptions = [
+  { label: "Latest Risk Feed", value: "latest", path: "/container-risk/latest?limit=50" },
+  { label: "Latest Risk Per Pod", value: "latest-per-pod", path: "/container-risk/latest-per-pod?limit=50" },
+  { label: "Risk By Pod", value: "by-pod", path: "" },
+];
+
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  hint,
+}: {
+  title: string;
+  value: React.ReactNode;
+  icon: any;
+  hint?: string;
+}) {
   return (
     <Card className="rounded-2xl border-slate-200 shadow-sm">
       <CardContent className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-sm text-slate-500">{title}</div>
-            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{value ?? "-"}</div>
+            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+              {value ?? "-"}
+            </div>
             {hint ? <div className="mt-2 text-xs text-slate-500">{hint}</div> : null}
           </div>
           <div className="rounded-2xl bg-slate-100 p-3">
@@ -62,12 +89,17 @@ function StatCard({ title, value, icon: Icon, hint }) {
   );
 }
 
-function SeverityBadge({ severity }) {
-  const cls = severityStyles[severity] || "bg-slate-100 text-slate-800 border-slate-200";
+function SeverityBadge({ severity }: { severity?: string }) {
+  const cls = severityStyles[severity || ""] || "bg-slate-100 text-slate-800 border-slate-200";
   return <Badge className={`border ${cls}`}>{severity || "unknown"}</Badge>;
 }
 
-function SectionTitle({ icon: Icon, children }) {
+function RiskLevelBadge({ level }: { level?: string }) {
+  const cls = riskLevelStyles[level || ""] || "bg-slate-100 text-slate-800 border-slate-200";
+  return <Badge className={`border ${cls}`}>{level || "unknown"}</Badge>;
+}
+
+function SectionTitle({ icon: Icon, children }: { icon: any; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2">
       <Icon className="h-5 w-5 text-slate-700" />
@@ -76,7 +108,7 @@ function SectionTitle({ icon: Icon, children }) {
   );
 }
 
-function formatTs(ts) {
+function formatTs(ts?: string | null) {
   if (!ts) return "-";
   try {
     return new Date(ts).toLocaleString();
@@ -154,7 +186,7 @@ function KubernetesContext({ source }: { source: any }) {
   );
 }
 
-function AlertRow({ alert }) {
+function AlertRow({ alert }: { alert: any }) {
   const details = alert?.details || {};
   const source = alert?.source_event || {};
   const destination =
@@ -269,18 +301,82 @@ function AlertRow({ alert }) {
   );
 }
 
+function RiskRow({ item }: { item: any }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 space-y-3 w-full">
+          <div className="flex flex-wrap items-center gap-2">
+            <RiskLevelBadge level={item?.final_risk_level} />
+            <Badge variant="outline" className="rounded-full">
+              score:{item?.final_risk_score ?? "-"}
+            </Badge>
+            {item?.pod_name ? (
+              <Badge variant="outline" className="rounded-full">
+                pod:{item.pod_name}
+              </Badge>
+            ) : null}
+            {item?.namespace ? (
+              <Badge variant="outline" className="rounded-full">
+                ns:{item.namespace}
+              </Badge>
+            ) : null}
+          </div>
+
+          <div className="grid gap-2 text-sm text-slate-700 md:grid-cols-2 xl:grid-cols-4">
+            <div><span className="font-medium text-slate-900">Time:</span> {formatTs(item?.ts)}</div>
+            <div><span className="font-medium text-slate-900">Window Start:</span> {formatTs(item?.window_start)}</div>
+            <div><span className="font-medium text-slate-900">Window End:</span> {formatTs(item?.window_end)}</div>
+            <div><span className="font-medium text-slate-900">Container ID:</span> {truncateMiddle(item?.container_id, 12, 6)}</div>
+
+            <div><span className="font-medium text-slate-900">Sequence Score:</span> {item?.sequence_score ?? 0}</div>
+            <div><span className="font-medium text-slate-900">Stat Score:</span> {item?.stat_score ?? 0}</div>
+            <div><span className="font-medium text-slate-900">LOF Score:</span> {item?.lof_score ?? 0}</div>
+            <div><span className="font-medium text-slate-900">Alerts Count:</span> {item?.alerts_count ?? 0}</div>
+
+            <div><span className="font-medium text-slate-900">Max Alert:</span> {item?.max_alert?.alert_type || item?.max_alert || "-"}</div>
+            <div><span className="font-medium text-slate-900">Threshold Anomaly:</span> {String(!!item?.threshold_anomaly_detected)}</div>
+            <div><span className="font-medium text-slate-900">Threshold Z:</span> {item?.threshold_max_z_score ?? 0}</div>
+            <div><span className="font-medium text-slate-900">LOF Value:</span> {item?.lof_value ?? 0}</div>
+
+            <div><span className="font-medium text-slate-900">Exec Count:</span> {item?.exec_count_window ?? 0}</div>
+            <div><span className="font-medium text-slate-900">Sensitive Opens:</span> {item?.sensitive_open_count_window ?? 0}</div>
+            <div><span className="font-medium text-slate-900">Connect Count:</span> {item?.connect_count_window ?? 0}</div>
+            <div><span className="font-medium text-slate-900">Unique Dests:</span> {item?.unique_destination_count_window ?? 0}</div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function SecubernetesDashboard() {
   const [summary, setSummary] = useState<any>(null);
   const [alertsPayload, setAlertsPayload] = useState<any>({ items: [], count: 0 });
+  const [riskPayload, setRiskPayload] = useState<any>({ items: [], count: 0 });
+
   const [endpoint, setEndpoint] = useState("latest");
+  const [riskEndpoint, setRiskEndpoint] = useState("latest");
+  const [riskPodName, setRiskPodName] = useState("test-pod");
   const [search, setSearch] = useState("");
+
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
+  const [loadingRisk, setLoadingRisk] = useState(true);
+
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const selectedEndpoint =
     endpointOptions.find((item) => item.value === endpoint) || endpointOptions[0];
+
+  const selectedRiskEndpoint =
+    riskEndpointOptions.find((item) => item.value === riskEndpoint) || riskEndpointOptions[0];
 
   async function fetchSummary() {
     setLoadingSummary(true);
@@ -313,8 +409,38 @@ export default function SecubernetesDashboard() {
     }
   }
 
+  async function fetchRisk() {
+    setLoadingRisk(true);
+    try {
+      let url = "";
+
+      if (riskEndpoint === "by-pod") {
+        const pod = riskPodName.trim();
+        if (!pod) {
+          setRiskPayload({ items: [], count: 0 });
+          setLoadingRisk(false);
+          return;
+        }
+        url = `${API_BASE}/container-risk/by-pod/${encodeURIComponent(pod)}?limit=50`;
+      } else {
+        url = `${API_BASE}${selectedRiskEndpoint.path}`;
+      }
+
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Risk request failed: ${res.status}`);
+      const data = await res.json();
+      setRiskPayload(data);
+      setError("");
+      setLastUpdated(new Date());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load risk");
+    } finally {
+      setLoadingRisk(false);
+    }
+  }
+
   async function refreshAll() {
-    await Promise.all([fetchSummary(), fetchAlerts()]);
+    await Promise.all([fetchSummary(), fetchAlerts(), fetchRisk()]);
   }
 
   useEffect(() => {
@@ -327,6 +453,10 @@ export default function SecubernetesDashboard() {
     fetchAlerts();
   }, [endpoint]);
 
+  useEffect(() => {
+    fetchRisk();
+  }, [riskEndpoint, riskPodName]);
+
   const filteredAlerts = useMemo(() => {
     const q = search.trim().toLowerCase();
     const items = alertsPayload?.items || [];
@@ -338,9 +468,34 @@ export default function SecubernetesDashboard() {
     });
   }, [alertsPayload, search]);
 
+  const filteredRisk = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const items = riskPayload?.items || [];
+    if (!q) return items;
+
+    return items.filter((item: any) => {
+      const haystack = JSON.stringify(item).toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [riskPayload, search]);
+
   const severityMap = summary?.by_severity || {};
   const topTypes = summary?.top_alert_types || [];
   const latestChain = summary?.latest_chain || null;
+
+  const highestRisk = useMemo(() => {
+    const items = riskPayload?.items || [];
+    if (!items.length) return null;
+    return [...items].sort((a, b) => (b.final_risk_score || 0) - (a.final_risk_score || 0))[0];
+  }, [riskPayload]);
+
+  const criticalRiskCount = useMemo(() => {
+    return (riskPayload?.items || []).filter((item: any) => item?.final_risk_level === "critical").length;
+  }, [riskPayload]);
+
+  const highRiskCount = useMemo(() => {
+    return (riskPayload?.items || []).filter((item: any) => item?.final_risk_level === "high").length;
+  }, [riskPayload]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -360,7 +515,7 @@ export default function SecubernetesDashboard() {
               Cluster Runtime Detection Overview
             </h1>
             <p className="mt-2 max-w-3xl text-slate-600">
-              Live visibility into alerts, attack chains, and suspicious runtime behavior collected from execve, openat, and connect telemetry.
+              Live visibility into alerts, attack chains, and per-pod risk scoring collected from execve, openat, connect, threshold, LOF, and sequence analysis.
             </p>
           </div>
 
@@ -383,40 +538,40 @@ export default function SecubernetesDashboard() {
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <StatCard title="Total Alerts" value={loadingSummary ? "..." : summary?.total_alerts ?? 0} icon={AlertTriangle} />
-          <StatCard title="Critical" value={loadingSummary ? "..." : severityMap.critical ?? 0} icon={Bug} />
-          <StatCard title="High" value={loadingSummary ? "..." : severityMap.high ?? 0} icon={Shield} />
-          <StatCard title="Medium" value={loadingSummary ? "..." : severityMap.medium ?? 0} icon={Activity} />
-          <StatCard title="Low" value={loadingSummary ? "..." : severityMap.low ?? 0} icon={Clock3} />
+          <StatCard title="Critical Alerts" value={loadingSummary ? "..." : severityMap.critical ?? 0} icon={Bug} />
+          <StatCard title="High Alerts" value={loadingSummary ? "..." : severityMap.high ?? 0} icon={Shield} />
+          <StatCard title="Critical Risk Rows" value={loadingRisk ? "..." : criticalRiskCount} icon={Radar} />
+          <StatCard title="High Risk Rows" value={loadingRisk ? "..." : highRiskCount} icon={BarChart3} />
         </div>
 
-        <div className="mt-8 grid gap-6 xl:grid-cols-[1.4fr_0.8fr]">
+        <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <Card className="rounded-2xl border-slate-200 shadow-sm">
             <CardHeader>
               <CardTitle>
-                <SectionTitle icon={Network}>Alert Feed</SectionTitle>
+                <SectionTitle icon={Radar}>Container Risk Feed</SectionTitle>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto]">
+              <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto]">
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search process, pod, namespace, IP, alert type, file..."
+                    placeholder="Search pod, namespace, risk, detector values, alert type..."
                     className="rounded-2xl pl-9"
                   />
                 </div>
 
-                <Select value={endpoint} onValueChange={setEndpoint}>
+                <Select value={riskEndpoint} onValueChange={setRiskEndpoint}>
                   <SelectTrigger className="rounded-2xl">
                     <div className="flex items-center gap-2">
                       <Filter className="h-4 w-4" />
-                      <SelectValue placeholder="Choose feed" />
+                      <SelectValue placeholder="Choose risk feed" />
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    {endpointOptions.map((item) => (
+                    {riskEndpointOptions.map((item) => (
                       <SelectItem key={item.value} value={item.value}>
                         {item.label}
                       </SelectItem>
@@ -424,23 +579,34 @@ export default function SecubernetesDashboard() {
                   </SelectContent>
                 </Select>
 
+                <Input
+                  value={riskPodName}
+                  onChange={(e) => setRiskPodName(e.target.value)}
+                  placeholder="Pod name"
+                  className="rounded-2xl"
+                  disabled={riskEndpoint !== "by-pod"}
+                />
+
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600">
-                  Showing {filteredAlerts.length} / {alertsPayload?.count ?? 0}
+                  Showing {filteredRisk.length} / {riskPayload?.count ?? 0}
                 </div>
               </div>
 
               <div className="space-y-3">
-                {loadingAlerts ? (
+                {loadingRisk ? (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-                    Loading alerts...
+                    Loading risk scores...
                   </div>
-                ) : filteredAlerts.length === 0 ? (
+                ) : filteredRisk.length === 0 ? (
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-                    No alerts match the current filter.
+                    No risk scores available yet.
                   </div>
                 ) : (
-                  filteredAlerts.map((alert: any) => (
-                    <AlertRow key={alert._id?.$oid || alert._id || `${alert.alert_type}-${alert.ts}`} alert={alert} />
+                  filteredRisk.map((item: any) => (
+                    <RiskRow
+                      key={item._id || `${item.namespace}-${item.pod_name}-${item.ts}`}
+                      item={item}
+                    />
                   ))
                 )}
               </div>
@@ -451,23 +617,81 @@ export default function SecubernetesDashboard() {
             <Card className="rounded-2xl border-slate-200 shadow-sm">
               <CardHeader>
                 <CardTitle>
-                  <SectionTitle icon={Server}>Top Alert Types</SectionTitle>
+                  <SectionTitle icon={Server}>Highest Current Risk</SectionTitle>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {topTypes.length === 0 ? (
-                  <div className="text-sm text-slate-500">No alert stats yet.</div>
+              <CardContent>
+                {!highestRisk ? (
+                  <div className="text-sm text-slate-500">No risk scores yet.</div>
                 ) : (
-                  topTypes.map((item: any) => (
-                    <div
-                      key={item.alert_type}
-                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
-                    >
-                      <div className="min-w-0 pr-3 text-sm font-medium text-slate-800">{item.alert_type}</div>
-                      <Badge variant="outline" className="rounded-full">{item.count}</Badge>
+                  <div className="space-y-3 rounded-2xl bg-slate-50 p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <RiskLevelBadge level={highestRisk.final_risk_level} />
+                      <Badge variant="outline" className="rounded-full">
+                        score:{highestRisk.final_risk_score}
+                      </Badge>
                     </div>
-                  ))
+
+                    <div className="text-sm text-slate-700 space-y-1">
+                      <div><span className="font-medium text-slate-900">Pod:</span> {highestRisk.pod_name || "-"}</div>
+                      <div><span className="font-medium text-slate-900">Namespace:</span> {highestRisk.namespace || "-"}</div>
+                      <div><span className="font-medium text-slate-900">Sequence Score:</span> {highestRisk.sequence_score ?? 0}</div>
+                      <div><span className="font-medium text-slate-900">Stat Score:</span> {highestRisk.stat_score ?? 0}</div>
+                      <div><span className="font-medium text-slate-900">LOF Score:</span> {highestRisk.lof_score ?? 0}</div>
+                      <div><span className="font-medium text-slate-900">Alerts Count:</span> {highestRisk.alerts_count ?? 0}</div>
+                      <div><span className="font-medium text-slate-900">Max Alert:</span> {highestRisk.max_alert?.alert_type || highestRisk.max_alert || "-"}</div>
+                      <div><span className="font-medium text-slate-900">Time:</span> {formatTs(highestRisk.ts)}</div>
+                    </div>
+                  </div>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle>
+                  <SectionTitle icon={Network}>Alert Feed</SectionTitle>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto]">
+                  <div />
+                  <Select value={endpoint} onValueChange={setEndpoint}>
+                    <SelectTrigger className="rounded-2xl">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-4 w-4" />
+                        <SelectValue placeholder="Choose feed" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {endpointOptions.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-600">
+                    Showing {filteredAlerts.length} / {alertsPayload?.count ?? 0}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {loadingAlerts ? (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+                      Loading alerts...
+                    </div>
+                  ) : filteredAlerts.length === 0 ? (
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
+                      No alerts match the current filter.
+                    </div>
+                  ) : (
+                    filteredAlerts.map((alert: any) => (
+                      <AlertRow key={alert._id?.$oid || alert._id || `${alert.alert_type}-${alert.ts}`} alert={alert} />
+                    ))
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -509,6 +733,29 @@ export default function SecubernetesDashboard() {
                       <div><span className="font-medium text-slate-900">Exec:</span> {latestChain?.details?.triggering_exec?.filename || "-"}</div>
                     </div>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-2xl border-slate-200 shadow-sm">
+              <CardHeader>
+                <CardTitle>
+                  <SectionTitle icon={Server}>Top Alert Types</SectionTitle>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {topTypes.length === 0 ? (
+                  <div className="text-sm text-slate-500">No alert stats yet.</div>
+                ) : (
+                  topTypes.map((item: any) => (
+                    <div
+                      key={item.alert_type}
+                      className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                    >
+                      <div className="min-w-0 pr-3 text-sm font-medium text-slate-800">{item.alert_type}</div>
+                      <Badge variant="outline" className="rounded-full">{item.count}</Badge>
+                    </div>
+                  ))
                 )}
               </CardContent>
             </Card>
