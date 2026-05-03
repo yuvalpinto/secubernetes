@@ -43,3 +43,6 @@ frontend/my-react-app/node_modules/
 output.txt
 
 output.txt
+# Cosign private keys
+security/supply-chain/cosign/*.key
+security/supply-chain/cosign/*.password

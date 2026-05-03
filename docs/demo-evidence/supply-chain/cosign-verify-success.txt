@@ -1,0 +1,8 @@
+
+Verification for ghcr.io/yuvalpinto/secubernetes-demo:latest --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - Existence of the claims in the transparency log was verified offline
+  - The signatures were verified against the specified public key
+
+[{"critical":{"identity":{"docker-reference":"ghcr.io/yuvalpinto/secubernetes-demo:latest"},"image":{"docker-manifest-digest":"sha256:228b3ea2057644d42b54349ebeb4aa0d5bd820bec64a6e0f592e9eaaba80ac4a"},"type":"https://sigstore.dev/cosign/sign/v1"},"optional":{}}]

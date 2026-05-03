@@ -1,0 +1,31 @@
+The push refers to repository [ghcr.io/yuvalpinto/secubernetes-demo]
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+e1475e3a9b1b: Waiting
+034d6572bf28: Waiting
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+e1475e3a9b1b: Waiting
+034d6572bf28: Waiting
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+e1475e3a9b1b: Waiting
+034d6572bf28: Waiting
+034d6572bf28: Waiting
+e1475e3a9b1b: Waiting
+e1475e3a9b1b: Waiting
+e1475e3a9b1b: Pushed
+034d6572bf28: Pushed
+latest: digest: sha256:228b3ea2057644d42b54349ebeb4aa0d5bd820bec64a6e0f592e9eaaba80ac4a size: 855
