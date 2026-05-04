@@ -1,23 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Shield,
   AlertTriangle,
-  Activity,
   Network,
   Search,
-  RefreshCw,
   Filter,
-  Clock3,
   Server,
+  Shield,
   Bug,
   Boxes,
   BarChart3,
   Radar,
 } from "lucide-react";
+import { getAlertSummary, getAlertsByEndpoint, alertEndpointOptions } from "@/api/alertsApi";
+import { getRiskByEndpoint, riskEndpointOptions } from "@/api/riskApi";
+import { DashboardHeader } from "@/components/layout/DashboardHeader";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -26,8 +26,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const API_BASE = "http://127.0.0.1:8000";
+import type {
+  AlertEndpointValue,
+  AlertListResponse,
+  AlertSummary,
+} from "@/types/alerts";
+import type { RiskEndpointValue, RiskListResponse } from "@/types/risk";
 
 const severityStyles: Record<string, string> = {
   critical: "bg-red-100 text-red-800 border-red-200",
@@ -42,21 +46,6 @@ const riskLevelStyles: Record<string, string> = {
   medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
   low: "bg-blue-100 text-blue-800 border-blue-200",
 };
-
-const endpointOptions = [
-  { label: "Latest Alerts", value: "latest", path: "/alerts/latest?limit=50" },
-  { label: "Chain Alerts", value: "chains", path: "/alerts/chains?limit=50" },
-  { label: "Critical Alerts", value: "critical", path: "/alerts/by-severity/critical?limit=50" },
-  { label: "High Alerts", value: "high", path: "/alerts/by-severity/high?limit=50" },
-  { label: "Medium Alerts", value: "medium", path: "/alerts/by-severity/medium?limit=50" },
-  { label: "Low Alerts", value: "low", path: "/alerts/by-severity/low?limit=50" },
-];
-
-const riskEndpointOptions = [
-  { label: "Latest Risk Feed", value: "latest", path: "/container-risk/latest?limit=50" },
-  { label: "Latest Risk Per Pod", value: "latest-per-pod", path: "/container-risk/latest-per-pod?limit=50" },
-  { label: "Risk By Pod", value: "by-pod", path: "" },
-];
 
 function StatCard({
   title,
@@ -89,12 +78,12 @@ function StatCard({
   );
 }
 
-function SeverityBadge({ severity }: { severity?: string }) {
+function SeverityBadge({ severity }: { severity?: string | null }) {
   const cls = severityStyles[severity || ""] || "bg-slate-100 text-slate-800 border-slate-200";
   return <Badge className={`border ${cls}`}>{severity || "unknown"}</Badge>;
 }
 
-function RiskLevelBadge({ level }: { level?: string }) {
+function RiskLevelBadge({ level }: { level?: string | null }) {
   const cls = riskLevelStyles[level || ""] || "bg-slate-100 text-slate-800 border-slate-200";
   return <Badge className={`border ${cls}`}>{level || "unknown"}</Badge>;
 }
@@ -126,6 +115,16 @@ function truncateMiddle(value?: string | null, start = 12, end = 8) {
 function formatDurationSeconds(value?: number | null) {
   if (value === undefined || value === null) return "-";
   return `${value}s`;
+}
+
+function formatMaxAlert(value: unknown) {
+  if (!value) return "-";
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && "alert_type" in value) {
+    const alertType = (value as { alert_type?: unknown }).alert_type;
+    return typeof alertType === "string" && alertType ? alertType : "-";
+  }
+  return "-";
 }
 
 function buildAttackSummary(alert: any) {
@@ -339,7 +338,7 @@ function RiskRow({ item }: { item: any }) {
             <div><span className="font-medium text-slate-900">LOF Score:</span> {item?.lof_score ?? 0}</div>
             <div><span className="font-medium text-slate-900">Alerts Count:</span> {item?.alerts_count ?? 0}</div>
 
-            <div><span className="font-medium text-slate-900">Max Alert:</span> {item?.max_alert?.alert_type || item?.max_alert || "-"}</div>
+            <div><span className="font-medium text-slate-900">Max Alert:</span> {formatMaxAlert(item?.max_alert)}</div>
             <div><span className="font-medium text-slate-900">Threshold Anomaly:</span> {String(!!item?.threshold_anomaly_detected)}</div>
             <div><span className="font-medium text-slate-900">Threshold Z:</span> {item?.threshold_max_z_score ?? 0}</div>
             <div><span className="font-medium text-slate-900">LOF Value:</span> {item?.lof_value ?? 0}</div>
@@ -356,12 +355,12 @@ function RiskRow({ item }: { item: any }) {
 }
 
 export default function SecubernetesDashboard() {
-  const [summary, setSummary] = useState<any>(null);
-  const [alertsPayload, setAlertsPayload] = useState<any>({ items: [], count: 0 });
-  const [riskPayload, setRiskPayload] = useState<any>({ items: [], count: 0 });
+  const [summary, setSummary] = useState<AlertSummary | null>(null);
+  const [alertsPayload, setAlertsPayload] = useState<AlertListResponse>({ items: [], count: 0 });
+  const [riskPayload, setRiskPayload] = useState<RiskListResponse>({ items: [], count: 0 });
 
-  const [endpoint, setEndpoint] = useState("latest");
-  const [riskEndpoint, setRiskEndpoint] = useState("latest");
+  const [endpoint, setEndpoint] = useState<AlertEndpointValue>("latest");
+  const [riskEndpoint, setRiskEndpoint] = useState<RiskEndpointValue>("latest");
   const [riskPodName, setRiskPodName] = useState("test-pod");
   const [search, setSearch] = useState("");
 
@@ -372,18 +371,10 @@ export default function SecubernetesDashboard() {
   const [error, setError] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const selectedEndpoint =
-    endpointOptions.find((item) => item.value === endpoint) || endpointOptions[0];
-
-  const selectedRiskEndpoint =
-    riskEndpointOptions.find((item) => item.value === riskEndpoint) || riskEndpointOptions[0];
-
   async function fetchSummary() {
     setLoadingSummary(true);
     try {
-      const res = await fetch(`${API_BASE}/alerts/summary`);
-      if (!res.ok) throw new Error(`Summary request failed: ${res.status}`);
-      const data = await res.json();
+      const data = await getAlertSummary();
       setSummary(data);
       setError("");
     } catch (err) {
@@ -396,9 +387,7 @@ export default function SecubernetesDashboard() {
   async function fetchAlerts() {
     setLoadingAlerts(true);
     try {
-      const res = await fetch(`${API_BASE}${selectedEndpoint.path}`);
-      if (!res.ok) throw new Error(`Alerts request failed: ${res.status}`);
-      const data = await res.json();
+      const data = await getAlertsByEndpoint(endpoint);
       setAlertsPayload(data);
       setError("");
       setLastUpdated(new Date());
@@ -412,8 +401,6 @@ export default function SecubernetesDashboard() {
   async function fetchRisk() {
     setLoadingRisk(true);
     try {
-      let url = "";
-
       if (riskEndpoint === "by-pod") {
         const pod = riskPodName.trim();
         if (!pod) {
@@ -421,14 +408,9 @@ export default function SecubernetesDashboard() {
           setLoadingRisk(false);
           return;
         }
-        url = `${API_BASE}/container-risk/by-pod/${encodeURIComponent(pod)}?limit=50`;
-      } else {
-        url = `${API_BASE}${selectedRiskEndpoint.path}`;
       }
 
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Risk request failed: ${res.status}`);
-      const data = await res.json();
+      const data = await getRiskByEndpoint(riskEndpoint, riskPodName.trim());
       setRiskPayload(data);
       setError("");
       setLastUpdated(new Date());
@@ -498,37 +480,8 @@ export default function SecubernetesDashboard() {
   }, [riskPayload]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
-        >
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm text-slate-600 shadow-sm">
-              <Shield className="h-4 w-4" />
-              Secubernetes Runtime Security Dashboard
-            </div>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">
-              Cluster Runtime Detection Overview
-            </h1>
-            <p className="mt-2 max-w-3xl text-slate-600">
-              Live visibility into alerts, attack chains, and per-pod risk scoring collected from execve, openat, connect, threshold, LOF, and sequence analysis.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">
-              Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : "-"}
-            </div>
-            <Button onClick={refreshAll} className="rounded-2xl">
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
-          </div>
-        </motion.div>
+    <DashboardLayout>
+        <DashboardHeader lastUpdated={lastUpdated} onRefresh={refreshAll} />
 
         {error ? (
           <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -563,7 +516,7 @@ export default function SecubernetesDashboard() {
                   />
                 </div>
 
-                <Select value={riskEndpoint} onValueChange={setRiskEndpoint}>
+                <Select value={riskEndpoint} onValueChange={(value) => setRiskEndpoint(value as RiskEndpointValue)}>
                   <SelectTrigger className="rounded-2xl">
                     <div className="flex items-center gap-2">
                       <Filter className="h-4 w-4" />
@@ -639,7 +592,7 @@ export default function SecubernetesDashboard() {
                       <div><span className="font-medium text-slate-900">Stat Score:</span> {highestRisk.stat_score ?? 0}</div>
                       <div><span className="font-medium text-slate-900">LOF Score:</span> {highestRisk.lof_score ?? 0}</div>
                       <div><span className="font-medium text-slate-900">Alerts Count:</span> {highestRisk.alerts_count ?? 0}</div>
-                      <div><span className="font-medium text-slate-900">Max Alert:</span> {highestRisk.max_alert?.alert_type || highestRisk.max_alert || "-"}</div>
+                      <div><span className="font-medium text-slate-900">Max Alert:</span> {formatMaxAlert(highestRisk.max_alert)}</div>
                       <div><span className="font-medium text-slate-900">Time:</span> {formatTs(highestRisk.ts)}</div>
                     </div>
                   </div>
@@ -656,7 +609,7 @@ export default function SecubernetesDashboard() {
               <CardContent className="space-y-4">
                 <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto]">
                   <div />
-                  <Select value={endpoint} onValueChange={setEndpoint}>
+                  <Select value={endpoint} onValueChange={(value) => setEndpoint(value as AlertEndpointValue)}>
                     <SelectTrigger className="rounded-2xl">
                       <div className="flex items-center gap-2">
                         <Filter className="h-4 w-4" />
@@ -664,7 +617,7 @@ export default function SecubernetesDashboard() {
                       </div>
                     </SelectTrigger>
                     <SelectContent>
-                      {endpointOptions.map((item) => (
+                      {alertEndpointOptions.map((item) => (
                         <SelectItem key={item.value} value={item.value}>
                           {item.label}
                         </SelectItem>
@@ -761,7 +714,6 @@ export default function SecubernetesDashboard() {
             </Card>
           </div>
         </div>
-      </div>
-    </div>
+    </DashboardLayout>
   );
 }
