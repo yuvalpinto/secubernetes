@@ -532,3 +532,10 @@ policy-demo
 ```
 
 This prevents the demo policies from breaking other development or runtime tests.
+### Image Vulnerability Scanning - Trivy
+
+In addition to cryptographic verification with Cosign, the project includes a basic image scanning step using Trivy.
+
+```bash
+./security/supply-chain/scanning/scan-image.sh ghcr.io/yuvalpinto/secubernetes-demo:latest
+
