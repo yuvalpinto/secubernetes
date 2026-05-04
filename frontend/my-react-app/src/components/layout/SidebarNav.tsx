@@ -1,9 +1,9 @@
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, FileText, Gauge, PackageCheck, ShieldAlert, ShieldCheck } from "lucide-react";
+import { BarChart3, FileText, PackageCheck, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-export type AppPage = "dashboard" | "alerts" | "risk" | "policy" | "supply-chain" | "reports";
+export type AppPage = "dashboard" | "policy" | "supply-chain" | "reports";
 
 export type SidebarNavItem = {
   icon: LucideIcon;
@@ -13,8 +13,6 @@ export type SidebarNavItem = {
 
 export const sidebarNavItems: SidebarNavItem[] = [
   { icon: BarChart3, label: "Dashboard", value: "dashboard" },
-  { icon: ShieldAlert, label: "Alerts", value: "alerts" },
-  { icon: Gauge, label: "Risk", value: "risk" },
   { icon: ShieldCheck, label: "Policy", value: "policy" },
   { icon: PackageCheck, label: "Supply Chain", value: "supply-chain" },
   { icon: FileText, label: "Reports", value: "reports" },

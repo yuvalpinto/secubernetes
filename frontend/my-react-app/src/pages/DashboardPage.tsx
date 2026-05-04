@@ -14,12 +14,14 @@ import {
 
 import { alertEndpointOptions } from "@/api/alertsApi";
 import { riskEndpointOptions } from "@/api/riskApi";
-import { ErrorState } from "@/components/common/ErrorState";
+import { AlertsBySeverityChart } from "@/components/charts/AlertsBySeverityChart";
+import { EventsByTypeChart } from "@/components/charts/EventsByTypeChart";
+import { RiskTrendChart } from "@/components/charts/RiskTrendChart";
+import { TopPodsRiskChart } from "@/components/charts/TopPodsRiskChart";
 import { RiskBadge } from "@/components/common/RiskBadge";
 import { SectionCard } from "@/components/common/SectionCard";
 import { SeverityBadge } from "@/components/common/SeverityBadge";
 import { StatCard } from "@/components/common/StatCard";
-import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { RecentAlertsTable } from "@/components/tables/RecentAlertsTable";
 import { RiskScoresTable } from "@/components/tables/RiskScoresTable";
 import { Badge } from "@/components/ui/badge";
@@ -38,19 +40,22 @@ import type {
   SecurityAlert,
 } from "@/types/alerts";
 import type { ContainerRisk, RiskEndpointValue, RiskListResponse } from "@/types/risk";
+import {
+  getAlertsBySeverityData,
+  getEventsByTypeData,
+  getRiskTrendData,
+  getTopPodsRiskData,
+} from "@/utils/analytics";
 import { buildAttackSummary } from "@/utils/alerts";
 import { formatMaxAlert, formatTs } from "@/utils/format";
 
 type DashboardPageProps = {
   alertsPayload: AlertListResponse;
   endpoint: AlertEndpointValue;
-  error: string;
-  lastUpdated: Date | null;
   loadingAlerts: boolean;
   loadingRisk: boolean;
   loadingSummary: boolean;
   onEndpointChange: (value: AlertEndpointValue) => void;
-  onRefresh: () => void;
   onRiskEndpointChange: (value: RiskEndpointValue) => void;
   onRiskPodNameChange: (value: string) => void;
   onSearchChange: (value: string) => void;
@@ -68,13 +73,10 @@ function includesSearch(value: unknown, query: string) {
 export function DashboardPage({
   alertsPayload,
   endpoint,
-  error,
-  lastUpdated,
   loadingAlerts,
   loadingRisk,
   loadingSummary,
   onEndpointChange,
-  onRefresh,
   onRiskEndpointChange,
   onRiskPodNameChange,
   onSearchChange,
@@ -101,6 +103,16 @@ export function DashboardPage({
   const severityMap = summary?.by_severity || {};
   const topTypes = summary?.top_alert_types || [];
   const latestChain = summary?.latest_chain || null;
+  const severityData = useMemo(
+    () => getAlertsBySeverityData(summary, alertsPayload.items || []),
+    [summary, alertsPayload],
+  );
+  const typeData = useMemo(
+    () => getEventsByTypeData(summary, alertsPayload.items || []),
+    [summary, alertsPayload],
+  );
+  const riskTrendData = useMemo(() => getRiskTrendData(riskPayload.items || []), [riskPayload]);
+  const topPodsData = useMemo(() => getTopPodsRiskData(riskPayload.items || []), [riskPayload]);
 
   const highestRisk = useMemo<ContainerRisk | null>(() => {
     const items = riskPayload.items || [];
@@ -118,16 +130,19 @@ export function DashboardPage({
 
   return (
     <>
-      <DashboardHeader lastUpdated={lastUpdated} onRefresh={onRefresh} />
-
-      <ErrorState message={error} />
-
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <StatCard title="Total Alerts" value={loadingSummary ? "..." : summary?.total_alerts ?? 0} icon={AlertTriangle} />
         <StatCard title="Critical Alerts" value={loadingSummary ? "..." : severityMap.critical ?? 0} icon={Bug} />
         <StatCard title="High Alerts" value={loadingSummary ? "..." : severityMap.high ?? 0} icon={Shield} />
         <StatCard title="Critical Risk Rows" value={loadingRisk ? "..." : criticalRiskCount} icon={Radar} />
         <StatCard title="High Risk Rows" value={loadingRisk ? "..." : highRiskCount} icon={BarChart3} />
+      </div>
+
+      <div className="mt-8 grid gap-6 xl:grid-cols-2">
+        <AlertsBySeverityChart data={severityData} />
+        <EventsByTypeChart data={typeData} />
+        <RiskTrendChart data={riskTrendData} />
+        <TopPodsRiskChart data={topPodsData} />
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
